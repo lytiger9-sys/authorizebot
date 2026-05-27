@@ -2,6 +2,7 @@ import { config } from "./config.js";
 import { createMemberRepository } from "./database/memberRepository.js";
 import { logger } from "./logger.js";
 import { createBotClient } from "./bot/createBotClient.js";
+import { createVerificationLogService } from "./services/verificationLogService.js";
 import { createWebServer } from "./web/createWebServer.js";
 
 const { database, repository: memberRepository } = await createMemberRepository({
@@ -11,7 +12,12 @@ const { database, repository: memberRepository } = await createMemberRepository(
 const botClient = createBotClient({ memberRepository });
 await botClient.login(config.discord.botToken);
 
-const app = createWebServer({ memberRepository, botClient });
+const verificationLogService = createVerificationLogService({
+  botClient,
+  channelId: config.discord.verificationLogChannelId
+});
+
+const app = createWebServer({ memberRepository, botClient, verificationLogService });
 const server = app.listen(config.port, () => {
   logger.info("Web server started.", { port: config.port });
 });

@@ -123,7 +123,8 @@ export async function fetchCurrentUser(accessToken) {
 
   return {
     id: result.data.id,
-    username: result.data.username
+    username: result.data.username,
+    globalName: result.data.global_name || null
   };
 }
 

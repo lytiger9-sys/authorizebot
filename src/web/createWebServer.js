@@ -10,12 +10,13 @@ import {
 } from "../services/discordApi.js";
 import { parseSignedState } from "../services/oauthState.js";
 import { renderFailurePage, renderSuccessPage } from "./pages.js";
+import { getVerificationRequestMetadata } from "./requestMetadata.js";
 
 function getRoleName(guild, roleId) {
   return guild?.roles.cache.get(roleId)?.name || "인증 역할";
 }
 
-export function createWebServer({ memberRepository, botClient }) {
+export function createWebServer({ memberRepository, botClient, verificationLogService }) {
   const app = express();
 
   app.get("/", (_request, response) => {
@@ -44,6 +45,7 @@ export function createWebServer({ memberRepository, botClient }) {
 
     try {
       const oauthState = parseSignedState(state);
+      const requestMetadata = getVerificationRequestMetadata(request);
       const tokens = await exchangeCodeForTokens(code);
       const user = await fetchCurrentUser(tokens.accessToken);
       const guild =
@@ -110,13 +112,22 @@ export function createWebServer({ memberRepository, botClient }) {
         return;
       }
 
+      const roleName = getRoleName(guild, oauthState.roleId);
+
       response.send(
         renderSuccessPage({
           username: user.username,
           guildName: guild.name,
-          roleName: getRoleName(guild, oauthState.roleId)
+          roleName
         })
       );
+
+      void verificationLogService?.logSuccess({
+        guildName: guild.name,
+        roleName,
+        user,
+        ...requestMetadata
+      });
     } catch (error) {
       logger.error("OAuth callback failed.", {
         error: error instanceof Error ? error.message : String(error)

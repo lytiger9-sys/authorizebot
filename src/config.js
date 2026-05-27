@@ -32,7 +32,9 @@ export const config = {
     botToken: requireEnv("DISCORD_BOT_TOKEN"),
     clientId: requireEnv("DISCORD_CLIENT_ID"),
     clientSecret: requireEnv("DISCORD_CLIENT_SECRET"),
-    commandGuildId: process.env.DISCORD_COMMAND_GUILD_ID?.trim() || null
+    commandGuildId: process.env.DISCORD_COMMAND_GUILD_ID?.trim() || null,
+    verificationLogChannelId:
+      process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID?.trim() || null
   },
   sqlitePath: path.resolve(
     process.cwd(),
