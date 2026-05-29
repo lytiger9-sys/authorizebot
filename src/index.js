@@ -5,6 +5,7 @@ import { Events } from "discord.js";
 import { createBotClient } from "./bot/createBotClient.js";
 import { createVerificationLogService } from "./services/verificationLogService.js";
 import { createDatabaseBackupService } from "./services/databaseBackupService.js";
+import { createSelfPingService } from "./services/selfPingService.js";
 import { createWebServer } from "./web/createWebServer.js";
 
 const runtime = {};
@@ -63,6 +64,8 @@ const verificationLogService = createVerificationLogService({
   channelId: config.discord.verificationLogChannelId
 });
 
+let selfPingService = null;
+
 const app = createWebServer({
   memberRepository,
   botClient,
@@ -70,6 +73,9 @@ const app = createWebServer({
   dbBackupService
 });
 const server = app.listen(config.port, () => {
+  selfPingService = createSelfPingService({
+    baseUrl: config.baseUrl
+  });
   logger.info("Web server started.", { port: config.port });
 });
 
@@ -88,8 +94,10 @@ function closeServer(serverInstance) {
 
 async function shutdown(signal) {
   logger.info("Shutdown requested.", { signal });
+  selfPingService?.stop();
   await closeServer(server);
   await dbBackupService.flush();
+  selfPingService?.destroy();
   botClient.destroy();
   database.close();
   process.exit(0);
