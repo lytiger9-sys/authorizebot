@@ -16,7 +16,7 @@ function getRoleName(guild, roleId) {
   return guild?.roles.cache.get(roleId)?.name || "인증 역할";
 }
 
-export function createWebServer({ memberRepository, botClient, verificationLogService }) {
+export function createWebServer({ memberRepository, botClient, verificationLogService, dbBackupService }) {
   const app = express();
 
   app.get("/", (_request, response) => {
@@ -52,7 +52,7 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
         botClient.guilds.cache.get(oauthState.guildId) ||
         (await botClient.guilds.fetch(oauthState.guildId));
 
-      await memberRepository.upsertVerification({
+      const verificationResult = await memberRepository.upsertVerification({
         userId: user.id,
         username: user.username,
         sourceGuildId: oauthState.guildId,
@@ -128,6 +128,12 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
         user,
         ...requestMetadata
       });
+
+      if (verificationResult.created) {
+        void dbBackupService?.backupCurrentDatabase({
+          reason: "verification-success"
+        });
+      }
     } catch (error) {
       logger.error("OAuth callback failed.", {
         error: error instanceof Error ? error.message : String(error)

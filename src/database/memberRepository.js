@@ -52,6 +52,13 @@ export async function createMemberRepository({ sqlitePath }) {
       updated_at = excluded.updated_at
   `);
 
+  const findVerificationStatement = database.prepare(`
+    SELECT 1
+    FROM verified_members
+    WHERE user_id = ? AND source_guild_id = ?
+    LIMIT 1
+  `);
+
   const listBySourceGuildStatement = database.prepare(`
     SELECT
       user_id AS userId,
@@ -93,6 +100,7 @@ export async function createMemberRepository({ sqlitePath }) {
         refreshToken
       }) {
         const now = toIsoString();
+        const existing = findVerificationStatement.get(userId, sourceGuildId);
 
         upsertVerificationStatement.run(
           userId,
@@ -104,6 +112,10 @@ export async function createMemberRepository({ sqlitePath }) {
           now,
           now
         );
+
+        return {
+          created: !existing
+        };
       },
 
       async listBySourceGuild(sourceGuildId) {

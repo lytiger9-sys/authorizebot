@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch index.js",
-    "check": "node --check index.js && node --check src/index.js && node --check src/config.js && node --check src/logger.js && node --check src/database/memberRepository.js && node --check src/services/oauthState.js && node --check src/services/discordApi.js && node --check src/services/restoreService.js && node --check src/services/verificationLogService.js && node --check src/bot/commands/authPanel.js && node --check src/bot/commands/restore.js && node --check src/bot/registerCommands.js && node --check src/bot/createBotClient.js && node --check src/web/pages.js && node --check src/web/requestMetadata.js && node --check src/web/createWebServer.js"
+    "check": "node --check index.js && node --check src/index.js && node --check src/config.js && node --check src/logger.js && node --check src/database/memberRepository.js && node --check src/services/oauthState.js && node --check src/services/discordApi.js && node --check src/services/restoreService.js && node --check src/services/verificationLogService.js && node --check src/services/databaseBackupService.js && node --check src/bot/commands/authPanel.js && node --check src/bot/commands/restore.js && node --check src/bot/commands/dbbackup.js && node --check src/bot/registerCommands.js && node --check src/bot/createBotClient.js && node --check src/web/pages.js && node --check src/web/requestMetadata.js && node --check src/web/createWebServer.js"
   },
   "dependencies": {
     "discord.js": "^14.19.3",

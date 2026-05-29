@@ -115,5 +115,6 @@ async function execute(interaction, { memberRepository }) {
 
 export default {
   data,
-  execute
+  execute,
+  requiredDependencies: ["memberRepository"]
 };

@@ -34,7 +34,8 @@ export const config = {
     clientSecret: requireEnv("DISCORD_CLIENT_SECRET"),
     commandGuildId: process.env.DISCORD_COMMAND_GUILD_ID?.trim() || null,
     verificationLogChannelId:
-      process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID?.trim() || null
+      process.env.DISCORD_VERIFICATION_LOG_CHANNEL_ID?.trim() || null,
+    dbBackupChannelId: process.env.DISCORD_DB_BACKUP_CHANNEL_ID?.trim() || null
   },
   sqlitePath: path.resolve(
     process.cwd(),

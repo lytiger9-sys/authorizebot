@@ -4,9 +4,12 @@ Node.js Discord auth bot with local SQLite storage.
 
 ## Features
 
-- `/인증패널 role:<role>` sends an OAuth button panel.
-- After OAuth approval, the bot stores the token in SQLite, joins the user to the guild, and grants the selected role.
-- `/복구 source_server_id:<guild_id> role:<optional>` re-adds previously verified users to the current guild.
+- Sends an OAuth button panel for server verification.
+- Stores verified users in SQLite, joins them to the guild, and grants the selected role.
+- Restores previously verified users back to a guild with the restore command.
+- Restores the latest encrypted SQLite backup from the backup channel on startup.
+- Uploads a fresh encrypted SQLite backup to the backup channel after each new verification.
+- Provides a `dbbackup` command for manual backup uploads.
 
 ## Setup
 
@@ -14,6 +17,7 @@ Node.js Discord auth bot with local SQLite storage.
 2. Register `BASE_URL/callback` in the Discord Developer Portal.
 3. Enable OAuth2 scopes `identify` and `guilds.join`.
 4. Invite the bot with `Manage Roles` and application command permissions.
+5. Set `DISCORD_DB_BACKUP_CHANNEL_ID` to a dedicated backup channel.
 
 ## Run
 
@@ -23,3 +27,4 @@ npm start
 ```
 
 The default SQLite file path is `./data/newisz-auth-bot.sqlite`.
+The encrypted backup payload is derived from `STATE_SECRET`.

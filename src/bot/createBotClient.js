@@ -4,8 +4,9 @@ import { logger } from "../logger.js";
 import { registerCommands } from "./registerCommands.js";
 import authPanelCommand from "./commands/authPanel.js";
 import restoreCommand from "./commands/restore.js";
+import dbBackupCommand from "./commands/dbbackup.js";
 
-const commands = [authPanelCommand, restoreCommand];
+const commands = [authPanelCommand, restoreCommand, dbBackupCommand];
 
 export function createBotClient(dependencies) {
   const client = new Client({
@@ -36,6 +37,24 @@ export function createBotClient(dependencies) {
     const command = commandMap.get(interaction.commandName);
 
     if (!command) {
+      return;
+    }
+
+    const requiredDependencies = command.requiredDependencies || [];
+    const missingDependencies = requiredDependencies.filter((name) => !dependencies[name]);
+
+    if (missingDependencies.length > 0) {
+      const message = "기능이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.";
+
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply(message).catch(() => null);
+        return;
+      }
+
+      await interaction.reply({
+        content: message,
+        ephemeral: true
+      }).catch(() => null);
       return;
     }
 
