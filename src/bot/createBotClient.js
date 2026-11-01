@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits } from "discord.js";
+import { Client, Events, GatewayIntentBits, RESTEvents } from "discord.js";
 
 import { logger } from "../logger.js";
 import { registerCommands } from "./registerCommands.js";
@@ -11,6 +11,22 @@ const commands = [authPanelCommand, restoreCommand, dbBackupCommand];
 export function createBotClient(dependencies) {
   const client = new Client({
     intents: [GatewayIntentBits.Guilds]
+  });
+
+  client.rest.on(RESTEvents.RateLimited, (details) => {
+    logger.warn("Discord REST rate limited.", {
+      route: details.route,
+      method: details.method,
+      scope: details.scope,
+      global: details.global,
+      retryAfterMs: details.retryAfter
+    });
+  });
+
+  client.rest.on(RESTEvents.Debug, (message) => {
+    if (/gateway|rate.?limit|retry/i.test(message)) {
+      logger.info("Discord REST debug.", message);
+    }
   });
 
   client.on(Events.Debug, (message) => {
