@@ -8,75 +8,85 @@ import { createDatabaseBackupService } from "./services/databaseBackupService.js
 import { createSelfPingService } from "./services/selfPingService.js";
 import { createWebServer } from "./web/createWebServer.js";
 
-const runtime = {};
+const runtime = {
+  memberRepository: null,
+  verificationLogService: null,
+  dbBackupService: null,
+  database: null
+};
+
 const botClient = createBotClient(runtime);
-await botClient.login(config.discord.botToken);
-
-if (!botClient.isReady()) {
-  await new Promise((resolve) => {
-    botClient.once(Events.ClientReady, resolve);
-  });
-}
-
-const dbBackupService = createDatabaseBackupService({
-  botClient,
-  channelId: config.discord.dbBackupChannelId,
-  sqlitePath: config.sqlitePath,
-  backupSecret: config.stateSecret,
-  getDatabase: () => runtime.database
-});
-
-if (!config.discord.dbBackupChannelId) {
-  logger.warn("Database backup channel is not configured.");
-}
-
-const restoreResult = await dbBackupService.restoreLatestBackup();
-
-if (restoreResult.ok) {
-  logger.info("Database restore completed from backup channel.", {
-    channelId: restoreResult.channelId,
-    fileName: restoreResult.fileName
-  });
-} else if (
-  restoreResult.reason === "backup-not-found" ||
-  restoreResult.reason === "channel-not-configured" ||
-  restoreResult.reason === "channel-unavailable"
-) {
-  logger.info("Database restore was skipped.", {
-    reason: restoreResult.reason
-  });
-} else {
-  logger.warn("Database restore failed.", {
-    reason: restoreResult.reason
-  });
-}
-
-const { database, repository: memberRepository } = await createMemberRepository({
-  sqlitePath: config.sqlitePath
-});
-
-runtime.database = database;
-runtime.memberRepository = memberRepository;
-runtime.dbBackupService = dbBackupService;
-
-const verificationLogService = createVerificationLogService({
-  botClient,
-  channelId: config.discord.verificationLogChannelId
-});
-
-let selfPingService = null;
-
-const app = createWebServer({
-  memberRepository,
-  botClient,
-  verificationLogService,
-  dbBackupService
-});
-const server = app.listen(config.port, () => {
-  selfPingService = createSelfPingService({
+const app = createWebServer({ runtime, botClient });
+const server = app.listen(config.port, "0.0.0.0", () => {
+  logger.info("Web server started.", { port: config.port });
+  runtime.selfPingService = createSelfPingService({
     baseUrl: config.baseUrl
   });
-  logger.info("Web server started.", { port: config.port });
+});
+
+let shuttingDown = false;
+
+async function startServices() {
+  await botClient.login(config.discord.botToken);
+
+  if (!botClient.isReady()) {
+    await new Promise((resolve) => {
+      botClient.once(Events.ClientReady, resolve);
+    });
+  }
+
+  runtime.dbBackupService = createDatabaseBackupService({
+    botClient,
+    channelId: config.discord.dbBackupChannelId,
+    sqlitePath: config.sqlitePath,
+    backupSecret: config.stateSecret,
+    getDatabase: () => runtime.database
+  });
+
+  if (!config.discord.dbBackupChannelId) {
+    logger.warn("Database backup channel is not configured.");
+  }
+
+  const restoreResult = await runtime.dbBackupService.restoreLatestBackup();
+
+  if (restoreResult.ok) {
+    logger.info("Database restore completed from backup channel.", {
+      channelId: restoreResult.channelId,
+      fileName: restoreResult.fileName
+    });
+  } else if (
+    restoreResult.reason === "backup-not-found" ||
+    restoreResult.reason === "channel-not-configured" ||
+    restoreResult.reason === "channel-unavailable"
+  ) {
+    logger.info("Database restore was skipped.", {
+      reason: restoreResult.reason
+    });
+  } else {
+    logger.warn("Database restore failed.", {
+      reason: restoreResult.reason
+    });
+  }
+
+  const repositoryResult = await createMemberRepository({
+    sqlitePath: config.sqlitePath
+  });
+
+  runtime.database = repositoryResult.database;
+  runtime.memberRepository = repositoryResult.repository;
+  runtime.verificationLogService = createVerificationLogService({
+    botClient,
+    channelId: config.discord.verificationLogChannelId
+  });
+
+  logger.info("Application services initialized.");
+}
+
+startServices().catch((error) => {
+  logger.error("Application startup failed.", {
+    error: error instanceof Error ? error.stack || error.message : String(error)
+  });
+  process.exitCode = 1;
 });
 
 function closeServer(serverInstance) {
@@ -93,13 +103,29 @@ function closeServer(serverInstance) {
 }
 
 async function shutdown(signal) {
+  if (shuttingDown) {
+    return;
+  }
+
+  shuttingDown = true;
   logger.info("Shutdown requested.", { signal });
-  selfPingService?.stop();
-  await closeServer(server);
-  await dbBackupService.flush();
-  selfPingService?.destroy();
+  runtime.selfPingService?.stop();
+
+  await closeServer(server).catch((error) => {
+    logger.warn("Web server close failed.", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  });
+
+  await runtime.dbBackupService?.flush().catch((error) => {
+    logger.warn("Database backup flush failed.", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  });
+
+  runtime.selfPingService?.destroy();
   botClient.destroy();
-  database.close();
+  runtime.database?.close();
   process.exit(0);
 }
 
@@ -118,5 +144,17 @@ process.on("SIGTERM", () => {
       error: error instanceof Error ? error.message : String(error)
     });
     process.exit(1);
+  });
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception.", {
+    error: error instanceof Error ? error.stack || error.message : String(error)
+  });
+});
+
+process.on("unhandledRejection", (error) => {
+  logger.error("Unhandled rejection.", {
+    error: error instanceof Error ? error.stack || error.message : String(error)
   });
 });

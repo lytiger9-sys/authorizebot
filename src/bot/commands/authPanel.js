@@ -7,8 +7,7 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
-import { buildAuthorizationUrl } from "../../services/discordApi.js";
-import { createSignedState } from "../../services/oauthState.js";
+import { config } from "../../config.js";
 
 const data = new SlashCommandBuilder()
   .setName("인증패널")
@@ -41,12 +40,9 @@ async function execute(interaction) {
     return;
   }
 
-  const state = createSignedState({
-    guildId: interaction.guildId,
-    roleId: role.id
-  });
-
-  const authUrl = buildAuthorizationUrl(state);
+  const authUrl = new URL("/authorize", config.baseUrl);
+  authUrl.searchParams.set("guildId", interaction.guildId);
+  authUrl.searchParams.set("roleId", role.id);
   const embed = new EmbedBuilder()
     .setColor(0x4f9cf9)
     .setTitle("서버 인증")
@@ -64,37 +60,14 @@ async function execute(interaction) {
     new ButtonBuilder()
       .setLabel("Discord 인증하기")
       .setStyle(ButtonStyle.Link)
-      .setURL(authUrl)
+      .setURL(authUrl.toString())
   );
 
-  // execute 함수 마지막 부분 교체
-  const message = await interaction.reply({
+  await interaction.reply({
     embeds: [embed],
     components: [row],
-    fetchReply: true  // 보낸 메시지 객체를 받아옴
+    fetchReply: true
   });
-
-  // 4분마다 URL 갱신
-  const REFRESH_INTERVAL_MS = 4 * 60 * 1000;
-
-  const intervalId = setInterval(async () => {
-    try {
-      const newState = createSignedState({ guildId: interaction.guildId, roleId: role.id });
-      const newAuthUrl = buildAuthorizationUrl(newState);
-
-      const newRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setLabel("Discord 인증하기")
-          .setStyle(ButtonStyle.Link)
-          .setURL(newAuthUrl)
-      );
-
-      await message.edit({ components: [newRow] });
-    } catch (err) {
-      // 메시지가 삭제됐거나 권한 없으면 인터벌 종료
-      clearInterval(intervalId);
-    }
-  }, REFRESH_INTERVAL_MS);
 }
 
 export default {

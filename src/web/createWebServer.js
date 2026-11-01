@@ -8,7 +8,8 @@ import {
   fetchCurrentUser,
   formatDiscordError
 } from "../services/discordApi.js";
-import { parseSignedState } from "../services/oauthState.js";
+import { buildAuthorizationUrl } from "../services/discordApi.js";
+import { createSignedState, parseSignedState } from "../services/oauthState.js";
 import { renderFailurePage, renderSuccessPage } from "./pages.js";
 import { getVerificationRequestMetadata } from "./requestMetadata.js";
 
@@ -16,7 +17,7 @@ function getRoleName(guild, roleId) {
   return guild?.roles.cache.get(roleId)?.name || "인증 역할";
 }
 
-export function createWebServer({ memberRepository, botClient, verificationLogService, dbBackupService }) {
+export function createWebServer({ runtime, botClient }) {
   const app = express();
 
   app.get("/", (_request, response) => {
@@ -25,6 +26,36 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
 
   app.get("/healthz", (_request, response) => {
     response.json({ ok: true });
+  });
+
+  app.get("/authorize", async (request, response) => {
+    const guildId = typeof request.query.guildId === "string" ? request.query.guildId : null;
+    const roleId = typeof request.query.roleId === "string" ? request.query.roleId : null;
+
+    if (!guildId || !roleId) {
+      response.status(400).send("guildId and roleId are required");
+      return;
+    }
+
+    try {
+      const guild = botClient.guilds.cache.get(guildId) || (await botClient.guilds.fetch(guildId));
+      const role = await guild.roles.fetch(roleId);
+
+      if (!role || role.managed) {
+        response.status(400).send("The selected role is unavailable");
+        return;
+      }
+
+      const state = createSignedState({ guildId, roleId });
+      response.redirect(buildAuthorizationUrl(state));
+    } catch (error) {
+      logger.warn("Authorization entrypoint failed.", {
+        guildId,
+        roleId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      response.status(404).send("The server or role is unavailable");
+    }
   });
 
   app.get("/callback", async (request, response) => {
@@ -52,7 +83,7 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
         botClient.guilds.cache.get(oauthState.guildId) ||
         (await botClient.guilds.fetch(oauthState.guildId));
 
-      const verificationResult = await memberRepository.upsertVerification({
+      const verificationResult = await runtime.memberRepository.upsertVerification({
         userId: user.id,
         username: user.username,
         sourceGuildId: oauthState.guildId,
@@ -122,7 +153,7 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
         })
       );
 
-      void verificationLogService?.logSuccess({
+      void runtime.verificationLogService?.logSuccess({
         guildName: guild.name,
         roleName,
         user,
@@ -130,7 +161,7 @@ export function createWebServer({ memberRepository, botClient, verificationLogSe
       });
 
       if (verificationResult.created) {
-        void dbBackupService?.backupCurrentDatabase({
+        void runtime.dbBackupService?.backupCurrentDatabase({
           reason: "verification-success"
         });
       }
