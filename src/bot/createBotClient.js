@@ -13,6 +13,10 @@ export function createBotClient(dependencies) {
     intents: [GatewayIntentBits.Guilds]
   });
 
+  client.on(Events.Debug, (message) => {
+    logger.info("Discord gateway debug.", message);
+  });
+
   client.on(Events.Error, (error) => {
     logger.error("Discord client error.", {
       error: error instanceof Error ? error.stack || error.message : String(error)
