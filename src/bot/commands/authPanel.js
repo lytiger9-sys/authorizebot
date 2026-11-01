@@ -2,9 +2,12 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
+  ContainerBuilder,
+  MessageFlags,
   PermissionFlagsBits,
-  SlashCommandBuilder
+  SeparatorBuilder,
+  SlashCommandBuilder,
+  TextDisplayBuilder
 } from "discord.js";
 
 import { config } from "../../config.js";
@@ -43,19 +46,6 @@ async function execute(interaction) {
   const authUrl = new URL("/authorize", config.baseUrl);
   authUrl.searchParams.set("guildId", interaction.guildId);
   authUrl.searchParams.set("roleId", role.id);
-  const embed = new EmbedBuilder()
-    .setColor(0x4f9cf9)
-    .setTitle("서버 인증")
-    .setDescription(
-      [
-        "아래 버튼을 눌러 Discord 인증을 완료하세요.",
-        `인증이 끝나면 ${role} 역할이 자동으로 지급됩니다.`
-      ].join("\n")
-    )
-    .setFooter({
-      text: "인증 정보는 서버 복구용으로 안전하게 저장됩니다."
-    });
-
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel("Discord 인증하기")
@@ -63,10 +53,22 @@ async function execute(interaction) {
       .setURL(authUrl.toString())
   );
 
+  const panel = new ContainerBuilder()
+    .setAccentColor(0x5865f2)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("# 서버 인증\n아래 버튼을 눌러 Discord 인증을 진행해 주세요.")
+    )
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `인증을 완료하면 ${role} 역할이 지급됩니다.\n\n인증 정보는 서버 복구를 위해 안전하게 저장됩니다.`
+      )
+    )
+    .addActionRowComponents(row);
+
   await interaction.reply({
-    embeds: [embed],
-    components: [row],
-    fetchReply: true
+    components: [panel],
+    flags: MessageFlags.IsComponentsV2
   });
 }
 

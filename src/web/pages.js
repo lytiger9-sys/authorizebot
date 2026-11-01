@@ -7,7 +7,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function renderLayout({ title, description, accentColor }) {
+function renderLayout({ title, description, status }) {
   return `<!DOCTYPE html>
 <html lang="ko">
   <head>
@@ -15,15 +15,7 @@ function renderLayout({ title, description, accentColor }) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
     <style>
-      :root {
-        color-scheme: dark;
-        --bg: #091018;
-        --panel: rgba(17, 28, 41, 0.92);
-        --border: rgba(255, 255, 255, 0.12);
-        --text: #f5f7fb;
-        --muted: #9fb0c5;
-        --accent: ${accentColor};
-      }
+      :root { color-scheme: light; font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; color: #252525; background: #fff; }
 
       * {
         box-sizing: border-box;
@@ -31,57 +23,37 @@ function renderLayout({ title, description, accentColor }) {
 
       body {
         margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        background:
-          radial-gradient(circle at top, rgba(79, 156, 249, 0.22), transparent 42%),
-          linear-gradient(160deg, #04070b, #0a1522 60%, #08111c);
-        font-family: "Segoe UI", "Noto Sans KR", sans-serif;
-        color: var(--text);
+        min-height: 100vh; margin: 0; padding: 0 24px;
+        display: flex; justify-content: center; align-items: flex-start;
+        background: #fff;
       }
 
       .panel {
-        width: min(560px, 100%);
-        padding: 32px;
-        border-radius: 20px;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+        width: min(640px, 100%); margin: 14vh 0 48px; padding: 0;
       }
 
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--muted);
-        font-size: 14px;
-        letter-spacing: 0.04em;
+      .eyebrow { margin: 0 0 16px; color: #777; font-size: 13px; letter-spacing: .02em;
       }
 
       h1 {
-        margin: 20px 0 12px;
-        font-size: clamp(28px, 6vw, 40px);
+        margin: 0 0 24px; font-size: clamp(26px, 5vw, 34px); font-weight: 600; letter-spacing: -.04em;
       }
 
       p {
-        margin: 0;
-        font-size: 16px;
-        line-height: 1.7;
-        color: var(--muted);
-        white-space: pre-line;
+        margin: 0; font-size: 15px; line-height: 1.9; color: #555; white-space: pre-line;
+      }
+
+      .rule { height: 1px; margin: 28px 0 20px; border: 0; background: #e8e8e8;
       }
     </style>
   </head>
   <body>
     <main class="panel">
-      <div class="badge">Discord OAuth</div>
+      <p class="eyebrow">NEWISZ · 계정 인증</p>
       <h1>${escapeHtml(title)}</h1>
       <p>${escapeHtml(description)}</p>
+      <hr class="rule" />
+      <p class="eyebrow">${status === "success" ? "인증 절차가 끝났습니다." : "문제가 계속되면 서버 관리자에게 문의해 주세요."}</p>
     </main>
   </body>
 </html>`;
@@ -91,7 +63,7 @@ export function renderSuccessPage({ username, guildName, roleName }) {
   return renderLayout({
     title: "인증이 완료되었습니다.",
     description: `${username} 님의 인증 정보가 저장되었습니다.\n서버: ${guildName}\n지급 역할: ${roleName}\n이제 창을 닫아도 됩니다.`,
-    accentColor: "#36d399"
+    status: "success"
   });
 }
 
@@ -99,6 +71,6 @@ export function renderFailurePage({ title, description }) {
   return renderLayout({
     title,
     description,
-    accentColor: "#ff6b6b"
+    status: "failure"
   });
 }
