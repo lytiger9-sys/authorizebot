@@ -14,7 +14,9 @@ export function createBotClient(dependencies) {
   });
 
   client.on(Events.Debug, (message) => {
-    logger.info("Discord gateway debug.", message);
+    if (message === "Preparing to connect to the gateway..." || message.startsWith("[WS =>")) {
+      logger.info("Discord gateway debug.", message);
+    }
   });
 
   client.on(Events.Error, (error) => {

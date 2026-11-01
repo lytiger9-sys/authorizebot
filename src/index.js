@@ -7,6 +7,7 @@ import { createVerificationLogService } from "./services/verificationLogService.
 import { createDatabaseBackupService } from "./services/databaseBackupService.js";
 import { createSelfPingService } from "./services/selfPingService.js";
 import { createWebServer } from "./web/createWebServer.js";
+import { checkDiscordGateway } from "./services/discordGatewayCheck.js";
 
 const runtime = {
   memberRepository: null,
@@ -27,6 +28,12 @@ const server = app.listen(config.port, "0.0.0.0", () => {
 let shuttingDown = false;
 
 async function startServices() {
+  logger.info("Checking Discord Gateway API connectivity.");
+  const gatewayStatus = await checkDiscordGateway({
+    botToken: config.discord.botToken
+  });
+  logger.info("Discord Gateway API check succeeded.", { status: gatewayStatus });
+
   logger.info("Discord bot login starting.");
   await botClient.login(config.discord.botToken);
   logger.info("Discord bot login request completed.", {
