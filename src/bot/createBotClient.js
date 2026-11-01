@@ -13,6 +13,31 @@ export function createBotClient(dependencies) {
     intents: [GatewayIntentBits.Guilds]
   });
 
+  client.on(Events.Error, (error) => {
+    logger.error("Discord client error.", {
+      error: error instanceof Error ? error.stack || error.message : String(error)
+    });
+  });
+
+  client.on(Events.ShardError, (error, shardId) => {
+    logger.error("Discord gateway shard error.", {
+      shardId,
+      error: error instanceof Error ? error.stack || error.message : String(error)
+    });
+  });
+
+  client.on(Events.ShardDisconnect, (closeEvent, shardId) => {
+    logger.warn("Discord gateway shard disconnected.", {
+      shardId,
+      code: closeEvent.code,
+      reason: closeEvent.reason?.toString() || null
+    });
+  });
+
+  client.on(Events.ShardReconnecting, (shardId) => {
+    logger.warn("Discord gateway shard reconnecting.", { shardId });
+  });
+
   const commandMap = new Map(commands.map((command) => [command.data.name, command]));
 
   client.once(Events.ClientReady, async (readyClient) => {

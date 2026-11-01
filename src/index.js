@@ -27,7 +27,11 @@ const server = app.listen(config.port, "0.0.0.0", () => {
 let shuttingDown = false;
 
 async function startServices() {
+  logger.info("Discord bot login starting.");
   await botClient.login(config.discord.botToken);
+  logger.info("Discord bot login request completed.", {
+    ready: botClient.isReady()
+  });
 
   if (!botClient.isReady()) {
     await new Promise((resolve) => {
