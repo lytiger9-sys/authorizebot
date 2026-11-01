@@ -15,7 +15,12 @@ function renderLayout({ title, description, status }) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
     <style>
-      :root { color-scheme: light; font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; color: #252525; background: #fff; }
+      :root {
+        color-scheme: dark;
+        font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+        color: #e7e7e7;
+        background: #171717;
+      }
 
       * {
         box-sizing: border-box;
@@ -23,33 +28,54 @@ function renderLayout({ title, description, status }) {
 
       body {
         margin: 0;
-        min-height: 100vh; margin: 0; padding: 0 24px;
-        display: flex; justify-content: center; align-items: flex-start;
-        background: #fff;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #171717;
       }
 
       .panel {
-        width: min(640px, 100%); margin: 14vh 0 48px; padding: 0;
+        width: min(620px, 100%);
+        margin: 48px 0;
+        padding: 0;
       }
 
-      .eyebrow { margin: 0 0 16px; color: #777; font-size: 13px; letter-spacing: .02em;
+      .eyebrow {
+        margin: 0 0 18px;
+        color: #929292;
+        font-size: 13px;
+        letter-spacing: 0;
       }
 
       h1 {
-        margin: 0 0 24px; font-size: clamp(26px, 5vw, 34px); font-weight: 600; letter-spacing: -.04em;
+        margin: 0 0 22px;
+        color: #f1f1f1;
+        font-size: clamp(26px, 5vw, 32px);
+        font-weight: 600;
+        letter-spacing: -0.035em;
       }
 
       p {
-        margin: 0; font-size: 15px; line-height: 1.9; color: #555; white-space: pre-line;
+        margin: 0;
+        color: #b6b6b6;
+        font-size: 15px;
+        line-height: 1.9;
+        white-space: pre-line;
       }
 
-      .rule { height: 1px; margin: 28px 0 20px; border: 0; background: #e8e8e8;
+      .rule {
+        height: 1px;
+        margin: 28px 0 18px;
+        border: 0;
+        background: #353535;
       }
     </style>
   </head>
   <body>
     <main class="panel">
-      <p class="eyebrow">NEWISZ · 계정 인증</p>
       <h1>${escapeHtml(title)}</h1>
       <p>${escapeHtml(description)}</p>
       <hr class="rule" />
