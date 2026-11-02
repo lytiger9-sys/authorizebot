@@ -1,4 +1,5 @@
 import { config } from "../config.js";
+import { logger } from "../logger.js";
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const SUCCESS_STATUSES = new Set([200, 201, 204]);
@@ -58,6 +59,14 @@ async function discordRequest(path, { method = "GET", headers = {}, json, form, 
         : Number(response.headers.get("retry-after") || 1);
 
     const retryAfterMs = Math.ceil(retryAfterSeconds * 1000);
+
+    logger.warn("Discord API rate limited.", {
+      method,
+      path,
+      retryAfterMs,
+      scope: response.headers.get("x-ratelimit-scope"),
+      global: response.headers.get("x-ratelimit-global") === "true"
+    });
 
     if (rateLimitRetries >= MAX_RATE_LIMIT_RETRIES || retryAfterMs > MAX_RATE_LIMIT_WAIT_MS) {
       return {
