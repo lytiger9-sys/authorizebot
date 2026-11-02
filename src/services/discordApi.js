@@ -2,6 +2,9 @@ import { config } from "../config.js";
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const SUCCESS_STATUSES = new Set([200, 201, 204]);
+const DISCORD_REQUEST_TIMEOUT_MS = 15_000;
+const MAX_RATE_LIMIT_RETRIES = 1;
+const MAX_RATE_LIMIT_WAIT_MS = 3_000;
 
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,6 +21,8 @@ async function readResponseBody(response) {
 }
 
 async function discordRequest(path, { method = "GET", headers = {}, json, form, body } = {}) {
+  let rateLimitRetries = 0;
+
   while (true) {
     const requestHeaders = { ...headers };
     let requestBody = body;
@@ -33,7 +38,8 @@ async function discordRequest(path, { method = "GET", headers = {}, json, form, 
     const response = await fetch(`${DISCORD_API_BASE_URL}${path}`, {
       method,
       headers: requestHeaders,
-      body: requestBody
+      body: requestBody,
+      signal: AbortSignal.timeout(DISCORD_REQUEST_TIMEOUT_MS)
     });
 
     const data = await readResponseBody(response);
@@ -51,7 +57,18 @@ async function discordRequest(path, { method = "GET", headers = {}, json, form, 
         ? data.retry_after
         : Number(response.headers.get("retry-after") || 1);
 
-    await sleep(Math.ceil(retryAfterSeconds * 1000));
+    const retryAfterMs = Math.ceil(retryAfterSeconds * 1000);
+
+    if (rateLimitRetries >= MAX_RATE_LIMIT_RETRIES || retryAfterMs > MAX_RATE_LIMIT_WAIT_MS) {
+      return {
+        ok: false,
+        status: response.status,
+        data
+      };
+    }
+
+    rateLimitRetries += 1;
+    await sleep(retryAfterMs);
   }
 }
 

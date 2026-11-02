@@ -59,6 +59,7 @@ export function createWebServer({ runtime, botClient }) {
   });
 
   app.get("/callback", async (request, response) => {
+    logger.info("OAuth callback received.");
     const code = typeof request.query.code === "string" ? request.query.code : null;
     const state = typeof request.query.state === "string" ? request.query.state : null;
 
@@ -77,7 +78,9 @@ export function createWebServer({ runtime, botClient }) {
     try {
       const oauthState = parseSignedState(state);
       const requestMetadata = getVerificationRequestMetadata(request);
+      logger.info("Exchanging Discord OAuth code.");
       const tokens = await exchangeCodeForTokens(code);
+      logger.info("Fetching Discord OAuth user profile.");
       const user = await fetchCurrentUser(tokens.accessToken);
       const guild =
         botClient.guilds.cache.get(oauthState.guildId) ||
@@ -96,6 +99,10 @@ export function createWebServer({ runtime, botClient }) {
         guildId: oauthState.guildId,
         userId: user.id,
         accessToken: tokens.accessToken
+      });
+
+      logger.info("Discord guild join request completed.", {
+        status: joinResult.status
       });
 
       if (![201, 204].includes(joinResult.status)) {
